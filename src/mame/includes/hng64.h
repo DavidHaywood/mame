@@ -9,6 +9,8 @@
 #include "machine/timer.h"
 #include "cpu/mips/mips3.h"
 #include "cpu/nec/v5x.h"
+#include "video/hyperneogeo64_3d.h"
+#include "video/hyperneogeo64_sprites.h"
 #include "sound/l7a1045_l6028_dsp_a.h"
 #include "video/poly.h"
 #include "cpu/tlcs870/tlcs870.h"
@@ -190,6 +192,8 @@ public:
 		m_fbram2(*this, "fbram2"),
 		m_idt7133_dpram(*this, "com_ram"),
 		m_gfxdecode(*this, "gfxdecode"),
+		m_sprites(*this, "sprites"),
+		m_3dobjects(*this, "3dobjects"),
 		m_in(*this, "IN%u", 0U),
 		m_an_in(*this, "AN%u", 0U),
 		m_samsho64_3d_hack(0),
@@ -256,6 +260,9 @@ private:
 
 	required_device<gfxdecode_device> m_gfxdecode;
 
+	required_device<hyperneogeo64_sprites> m_sprites;
+	required_device<hyperneogeo64_3d> m_3dobjects;	
+
 	required_ioport_array<8> m_in;
 	required_ioport_array<8> m_an_in;
 
@@ -305,7 +312,6 @@ private:
 
 	//uint32_t *q2;
 
-	std::vector< std::pair <int, uint32_t *> > m_spritelist;
 
 	uint8_t m_screen_dis;
 
@@ -484,7 +490,6 @@ private:
 
 	void clear3d();
 	void hng64_command3d(const uint16_t* packet);
-	void draw_sprites(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect);
 	void transition_control(bitmap_rgb32 &bitmap, const rectangle &cliprect);
 	void setCameraTransformation(const uint16_t* packet);
 	void setLighting(const uint16_t* packet);

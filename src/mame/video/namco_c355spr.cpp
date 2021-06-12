@@ -517,7 +517,7 @@ void namco_c355spr_device::get_list(int no, const u16 *pSpriteList16, const u16 
 		const u16 which = pSpriteList16[i];
 		get_single_sprite(&pSpriteTable[(which & 0xff) * 8], sprite_ptr);
 		sprite_ptr++;
-		if (which & 0x100) break;
+	//	if (which & 0x100) break;
 	}
 	m_sprite_end[no] = sprite_ptr;
 }
@@ -527,11 +527,11 @@ void namco_c355spr_device::get_sprites(const rectangle cliprect)
 	int buffer = std::max(0, m_buffer - 1);
 //  int offs = spriteram16[0x18000/2]; /* end-of-sprite-list */
 
-//  if (offs == 0)  // boot
+ // if (offs == 0)  // boot
 	// TODO: solvalou service mode wants 0x14000/2 & 0x00000/2
 		get_list(0, &m_spriteram[buffer][0x02000/2], &m_spriteram[buffer][0x00000/2]);
-//  else
-		get_list(1, &m_spriteram[buffer][0x14000/2], &m_spriteram[buffer][0x10000/2]);
+  //else
+//		get_list(1, &m_spriteram[buffer][0x14000/2], &m_spriteram[buffer][0x10000/2]);
 
 	copy_sprites(cliprect);
 }
