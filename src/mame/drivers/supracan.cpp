@@ -1,5 +1,5 @@
 // license:LGPL-2.1+
-// copyright-holders:Angelo Salese,Ryan Holtz
+// copyright-holders:Angelo Salese,Ryan Holtz, David Haywood
 /***************************************************************************
 
 
@@ -24,38 +24,8 @@ INFO:
 
 STATUS:
 
-    Sound chip is completely custom, and partially implemented.
 
-    There are 6 interrupt sources on the 6502 side, all of which use the IRQ line.
-    The register at 0x411 is bitmapped to indicate what source(s) are active.
-    In priority order from most to least important, they are:
 
-    411 value  How acked                     Notes
-    0x40       read reg 0x16 of sound chip   used for DMA-driven sample playback. Register 0x16 may contain which DMA-driven samples are active.
-    0x04       read at 0x405                 latch 1?  0xcd is magic value
-    0x08       read at 0x404                 latch 2?  0xcd is magic value
-    0x10       read at 0x409                 unknown, dispatched but not used in startup 6502 code
-    0x20       read at 0x40a                 IRQ request from 68k, flags data available in shared-RAM mailbox
-    0x80       read reg 0x14 of sound chip   depends on reg 0x14 of sound chip & 0x40: if not set writes 0x8f to reg 0x14,
-                                             otherwise writes 0x4f to reg 0x14 and performs additional processing
-
-    Known unemulated graphical effects and issues:
-    - All: Sprite sizing is still imperfect.
-    - All: Sprites need to be converted to use scanline rendering for proper clipping.
-    - All: Improperly-emulated 1bpp ROZ mode, used by the Super A'Can BIOS logo.
-    - All: Unimplemented ROZ scaling tables, used by the Super A'Can BIOS logo and Speedy Dragon intro, among others.
-    - All: Priorities are largely unknown.
-    - C.U.G.: Gameplay backgrounds are broken.
-    - Sango Fighter: Possible missing masking on the upper edges of the screen during gameplay.
-    - Sango Fighter: Raster effects off by 1 line
-    - Sango Fighter: Specifies tiles out of range of video ram??
-    - Speedy Dragon: Backgrounds are broken (wrong tile bank/region).
-    - Super Taiwanese Baseball League: Does not boot, uses an unemulated DMA type
-    - Super Taiwanese Baseball League: Missing window effect applied on tilemaps?
-    - The Son of Evil: Many graphical issues.
-    - Visible area, looks like it should be 224 pixels high at most, most games need 8 off the top and 8 off the bottom (or a global scroll)
-      Sango looks like it needs 16 off the bottom instead
-      Visible area is almost certainly 224 as Son of Evil has an explicit check in the vblank handler
 
 DEBUG TRICKS:
 
@@ -77,6 +47,9 @@ DEBUG TRICKS:
 #include "bus/generic/carts.h"
 #include "softlist.h"
 
+#include "audio/supracan_um6619.h"
+#include "video/supracan_um6618.h"
+
 namespace {
 
 class supracan_state : public driver_device
@@ -86,6 +59,8 @@ public:
 		: driver_device(mconfig, type, tag)
 		, m_maincpu(*this, "maincpu")
 		, m_cart(*this, "cartslot")
+		, m_um6618_vid(*this, "um6618_vid")
+		, m_um6619_audio(*this, "um6619_audio")
 	{
 	}
 
@@ -102,6 +77,9 @@ private:
 
 	required_device<cpu_device> m_maincpu;
 	required_device<generic_slot_device> m_cart;
+	required_device<supracan_um6618_video_device> m_um6618_vid;
+	required_device<supracan_um6619_audiosoc_device> m_um6619_audio;
+
 };
 
 
@@ -173,6 +151,9 @@ void supracan_state::supracan(machine_config &config)
 {
 	M68000(config, m_maincpu, XTAL(10'738'635));        /* Correct frequency unknown */
 	m_maincpu->set_addrmap(AS_PROGRAM, &supracan_state::supracan_mem);
+
+	SUPRACAN_UM6618_VIDEO(config, m_um6618_vid, 0); 
+	SUPRACAN_UM6619_AUDIOSOC(config, m_um6619_audio, 0); 
 
 	generic_cartslot_device &cartslot(GENERIC_CARTSLOT(config, "cartslot", generic_plain_slot, "supracan_cart"));
 	cartslot.set_width(GENERIC_ROM16_WIDTH);
