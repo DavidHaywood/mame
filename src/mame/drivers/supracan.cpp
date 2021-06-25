@@ -52,6 +52,8 @@ DEBUG TRICKS:
 
 namespace {
 
+
+
 class supracan_state : public driver_device
 {
 public:
@@ -85,6 +87,7 @@ private:
 
 void supracan_state::supracan_mem(address_map &map)
 {
+	map(0xf40000, 0xf5ffff).ram().share("um6618_vid:vram");
 }
 
 static INPUT_PORTS_START( supracan )
