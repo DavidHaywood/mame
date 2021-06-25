@@ -6,7 +6,11 @@
 
 #pragma once
 
+#include "audio/acan.h"
+
 #include "cpu/m6502/m6502.h"
+
+#include "speaker.h"
 
 
 DECLARE_DEVICE_TYPE(SUPRACAN_UM6619_AUDIOSOC, supracan_um6619_audiosoc_device)
@@ -24,7 +28,12 @@ protected:
 private:
 	void supracan_sound_mem(address_map &map);
 
+	uint8_t sound_ram_read(offs_t offset);
+	void sound_timer_irq(int state);
+	void sound_dma_irq(int state);
+
 	required_device<cpu_device> m_soundcpu;
+	required_device<acan_sound_device> m_sound;
 };
 
 #endif // MAME_AUDIO_SUPRACAN_UM6619_H

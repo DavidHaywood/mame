@@ -27,6 +27,7 @@ DEFINE_DEVICE_TYPE(SUPRACAN_UM6619_AUDIOSOC, supracan_um6619_audiosoc_device, "u
 supracan_um6619_audiosoc_device::supracan_um6619_audiosoc_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
 	: device_t(mconfig, SUPRACAN_UM6619_AUDIOSOC, tag, owner, clock)
 	, m_soundcpu(*this, "soundcpu")
+	, m_sound(*this, "acansnd")
 {
 }
 
@@ -35,10 +36,37 @@ void supracan_um6619_audiosoc_device::supracan_sound_mem(address_map &map)
 //	map(0x0000, 0xffff).rw(FUNC(supracan_state::_6502_soundmem_r), FUNC(supracan_state::_6502_soundmem_w)).share("soundram");
 }
 
+uint8_t supracan_um6619_audiosoc_device::sound_ram_read(offs_t offset)
+{
+	return 0x00;
+	//return m_soundram[offset];
+}
+
+void supracan_um6619_audiosoc_device::sound_timer_irq(int state)
+{
+	//set_sound_irq(7, state);
+}
+
+void supracan_um6619_audiosoc_device::sound_dma_irq(int state)
+{
+	//set_sound_irq(6, state);
+}
+
+
 void supracan_um6619_audiosoc_device::device_add_mconfig(machine_config &config)
 {
 	M6502(config, m_soundcpu, XTAL(3'579'545));     /* TODO: Verify actual clock */
 	m_soundcpu->set_addrmap(AS_PROGRAM, &supracan_um6619_audiosoc_device::supracan_sound_mem);
+
+	SPEAKER(config, "lspeaker").front_left();
+	SPEAKER(config, "rspeaker").front_right();
+
+	ACANSND(config, m_sound, XTAL(3'579'545));
+	m_sound->ram_read().set(FUNC(supracan_um6619_audiosoc_device::sound_ram_read));
+	m_sound->timer_irq_handler().set(FUNC(supracan_um6619_audiosoc_device::sound_timer_irq));
+	m_sound->dma_irq_handler().set(FUNC(supracan_um6619_audiosoc_device::sound_dma_irq));
+	m_sound->add_route(0, "lspeaker", 1.0);
+	m_sound->add_route(1, "rspeaker", 1.0);
 }
 
 void supracan_um6619_audiosoc_device::device_start()
