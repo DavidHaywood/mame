@@ -17,10 +17,15 @@ class supracan_um6618_video_device : public device_t
 public:
 	supracan_um6618_video_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
 
-	auto readpa_handler() { return m_in_a_handler.bind(); }
-	auto writepa_handler() { return m_out_a_handler.bind(); }
-	auto ca2_handler() { return m_ca2_handler.bind(); }
+	auto set_read_cpu_space() { return read_cpu_space.bind(); }
+	auto set_write_cpu_space() { return write_cpu_space.bind(); }
+	auto set_vblank_irq() { return vblank_irq.bind(); }
+	auto set_line_irq() { return line_irq.bind(); }
+	auto set_hblank_irq() { return hblank_irq.bind(); }
 
+	uint16_t video_r(offs_t offset, uint16_t mem_mask = 0);
+	void video_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void vram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 
 protected:
 	virtual void device_start() override;
@@ -32,12 +37,6 @@ private:
 	void palette_init(palette_device &palette) const;
 
 	uint32_t screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
-
-
-	uint16_t video_r(offs_t offset, uint16_t mem_mask = 0);
-	void video_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
-	void vram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
-
 
 	struct sprdma_regs_t
 	{
@@ -118,10 +117,11 @@ private:
 	required_device<screen_device> m_screen;
 	required_shared_ptr<uint16_t> m_vram;
 
-	devcb_read8 m_in_a_handler;
-	devcb_write8 m_out_a_handler;
-	devcb_write_line m_ca2_handler;
-
+	devcb_read8 read_cpu_space;
+	devcb_write8 write_cpu_space;
+	devcb_write_line vblank_irq;
+	devcb_write_line line_irq;
+	devcb_write_line hblank_irq;
 };
 
 #endif // MAME_VIDEO_SUPRACAN_UM6618_H

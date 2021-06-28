@@ -62,9 +62,11 @@ supracan_um6618_video_device::supracan_um6618_video_device(const machine_config 
 	, m_gfxdecode(*this, "gfxdecode")
 	, m_screen(*this, "screen")
 	, m_vram(*this, "vram")
-	, m_in_a_handler(*this)
-	, m_out_a_handler(*this)
-	, m_ca2_handler(*this)
+	, read_cpu_space(*this)
+	, write_cpu_space(*this)
+	, vblank_irq(*this)
+	, line_irq(*this)
+	, hblank_irq(*this)
 {
 }
 
@@ -75,8 +77,6 @@ void supracan_um6618_video_device::device_start()
 	m_prio_bitmap.allocate(1024, 1024, BITMAP_FORMAT_IND8);
 
 	m_vram_addr_swapped.resize(0x20000); // hack for 1bpp layer at startup
-	m_gfxdecode->gfx(4)->set_source(&m_vram_addr_swapped[0]);
-	m_gfxdecode->gfx(4)->set_xormask(0);
 
 	m_tilemap_sizes[0][0] = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(supracan_um6618_video_device::get_tilemap0_tile_info)), TILEMAP_SCAN_ROWS, 8, 8, 32, 32);
 	m_tilemap_sizes[0][1] = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(supracan_um6618_video_device::get_tilemap0_tile_info)), TILEMAP_SCAN_ROWS, 8, 8, 64, 32);
@@ -139,13 +139,18 @@ void supracan_um6618_video_device::device_start()
 	m_line_on_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(supracan_um6618_video_device::line_on_callback), this));
 	m_line_off_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(supracan_um6618_video_device::line_off_callback), this));
 
-	m_in_a_handler.resolve();
-	m_out_a_handler.resolve_safe();
-	m_ca2_handler.resolve_safe();
+	read_cpu_space.resolve();
+	write_cpu_space.resolve_safe();
+	vblank_irq.resolve_safe();
+	line_irq.resolve_safe();
+	hblank_irq.resolve_safe();
 }
 
 void supracan_um6618_video_device::device_reset()
 {
+	m_gfxdecode->gfx(4)->set_source(&m_vram_addr_swapped[0]);
+	m_gfxdecode->gfx(4)->set_xormask(0);
+
 	m_sprite_count = 0;
 	m_sprite_base_addr = 0;
 	m_sprite_flags = 0;
@@ -985,13 +990,17 @@ void supracan_um6618_video_device::video_w(offs_t offset, uint16_t data, uint16_
 			{
 				if (data & 0x0100) // dma 0x00 fill (or fixed value?)
 				{
-					// TODO mem.write_word(m_sprdma_regs.dst, 0);
+					write_cpu_space(m_sprdma_regs.dst, 0x00);
+					write_cpu_space(m_sprdma_regs.dst + 1, 0x00);
+
 					m_sprdma_regs.dst += 2 * m_sprdma_regs.dst_inc;
 					//memset(supracan_vram, 0x00, 0x020000);
 				}
 				else
 				{
-					// TODO mem.write_word(m_sprdma_regs.dst, mem.read_word(m_sprdma_regs.src));
+					write_cpu_space(m_sprdma_regs.dst, read_cpu_space(m_sprdma_regs.src));
+					write_cpu_space(m_sprdma_regs.dst + 1, read_cpu_space(m_sprdma_regs.src + 1));
+
 					m_sprdma_regs.dst += 2 * m_sprdma_regs.dst_inc;
 					m_sprdma_regs.src += 2 * m_sprdma_regs.src_inc;
 				}
@@ -1089,7 +1098,7 @@ void supracan_um6618_video_device::video_w(offs_t offset, uint16_t data, uint16_
 #if 0
 		if (!m_irq_mask && !m_hbl_mask)
 		{
-			// TODO: m_maincpu->set_input_line(7, CLEAR_LINE);
+			vblank_irq(CLEAR_LINE);
 		}
 #endif
 		LOGMASKED(LOG_IRQS, "irq_mask = %04x\n", data);
@@ -1112,7 +1121,7 @@ uint16_t supracan_um6618_video_device::video_r(offs_t offset, uint16_t mem_mask)
 		if (!machine().side_effects_disabled())
 		{
 			LOGMASKED(LOG_HFVIDEO, "read video IRQ flags (%04x)\n", data);
-			// TODO: m_maincpu->set_input_line(7, CLEAR_LINE);
+			vblank_irq(CLEAR_LINE);
 		}
 		break;
 	case 0x02/2: // Current scanline
@@ -1152,21 +1161,21 @@ uint16_t supracan_um6618_video_device::video_r(offs_t offset, uint16_t mem_mask)
 
 TIMER_CALLBACK_MEMBER(supracan_um6618_video_device::hbl_callback)
 {
-	// TODO m_maincpu->set_input_line(3, HOLD_LINE);
+	hblank_irq(HOLD_LINE);
 
 	m_hbl_timer->adjust(attotime::never);
 }
 
 TIMER_CALLBACK_MEMBER(supracan_um6618_video_device::line_on_callback)
 {
-	// TODO m_maincpu->set_input_line(5, HOLD_LINE);
+	line_irq(HOLD_LINE);
 
 	m_line_on_timer->adjust(attotime::never);
 }
 
 TIMER_CALLBACK_MEMBER(supracan_um6618_video_device::line_off_callback)
 {
-	// TODO m_maincpu->set_input_line(5, CLEAR_LINE);
+	line_irq(CLEAR_LINE);
 
 	m_line_on_timer->adjust(attotime::never);
 }
@@ -1197,7 +1206,7 @@ TIMER_CALLBACK_MEMBER(supracan_um6618_video_device::video_callback)
 		if (m_irq_mask & 1)
 		{
 			LOGMASKED(LOG_IRQS, "Triggering VBL IRQ\n\n");
-			// TODO: m_maincpu->set_input_line(7, HOLD_LINE);
+			vblank_irq(HOLD_LINE);
 		}
 		break;
 	}

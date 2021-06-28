@@ -49,6 +49,8 @@ supracan_um6619_audiosoc_device::supracan_um6619_audiosoc_device(const machine_c
 	, m_sound(*this, "acansnd")
 	, m_soundram(*this, "soundram")
 	, m_pads(*this, "P%u", 1U)
+	, read_cpu_space(*this)
+	, write_cpu_space(*this)
 {
 }
 
@@ -365,7 +367,9 @@ void supracan_um6619_audiosoc_device::dma_w(int offset, uint16_t data, uint16_t 
 			{
 				if (data & 0x1000)
 				{
-					//mem.write_word(m_dma_regs.dest[ch], mem.read_word(m_dma_regs.source[ch]));
+					write_cpu_space(m_dma_regs.dest[ch], read_cpu_space(m_dma_regs.source[ch]));
+					write_cpu_space(m_dma_regs.dest[ch] + 1, read_cpu_space(m_dma_regs.source[ch] + 1));
+
 					m_dma_regs.dest[ch] += 2;
 					m_dma_regs.source[ch] += 2;
 					if (data & 0x0100)
@@ -374,7 +378,8 @@ void supracan_um6619_audiosoc_device::dma_w(int offset, uint16_t data, uint16_t 
 				}
 				else
 				{
-					//mem.write_byte(m_dma_regs.dest[ch], mem.read_byte(m_dma_regs.source[ch]));
+					write_cpu_space(m_dma_regs.dest[ch], read_cpu_space(m_dma_regs.source[ch]));
+
 					m_dma_regs.dest[ch]++;
 					m_dma_regs.source[ch]++;
 				}
@@ -458,6 +463,9 @@ void supracan_um6619_audiosoc_device::device_add_mconfig(machine_config &config)
 
 void supracan_um6619_audiosoc_device::device_start()
 {
+	read_cpu_space.resolve();
+	write_cpu_space.resolve_safe();
+
 	save_item(NAME(m_soundcpu_irq_enable));
 	save_item(NAME(m_soundcpu_irq_source));
 	save_item(NAME(m_sound_cpu_ctrl));

@@ -22,7 +22,15 @@ public:
 
 	uint16_t _68k_soundram_r(offs_t offset, uint16_t mem_mask = ~0);
 	void _68k_soundram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
-	void dma_w(int offset, uint16_t data, uint16_t mem_mask, int ch);
+
+	uint16_t sound_r(offs_t offset, uint16_t mem_mask);
+	void sound_w(offs_t offset, uint16_t data, uint16_t mem_mask);
+
+	void dma_channel0_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void dma_channel1_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+
+	auto set_read_cpu_space() { return read_cpu_space.bind(); }
+	auto set_write_cpu_space() { return write_cpu_space.bind(); }
 
 protected:
 	virtual void device_start() override;
@@ -46,17 +54,13 @@ private:
 	void sound_timer_irq(int state);
 	void sound_dma_irq(int state);
 
-	uint16_t sound_r(offs_t offset, uint16_t mem_mask);
-	void sound_w(offs_t offset, uint16_t data, uint16_t mem_mask);
 
 	void _6502_soundmem_w(offs_t offset, uint8_t data);
 	uint8_t _6502_soundmem_r(offs_t offset);
 
 	void set_sound_irq(uint8_t bit, uint8_t state);
 
-	void dma_channel0_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
-	void dma_channel1_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
-
+	void dma_w(int offset, uint16_t data, uint16_t mem_mask, int ch);
 
 	uint8_t m_soundcpu_irq_enable;
 	uint8_t m_soundcpu_irq_source;
@@ -73,6 +77,9 @@ private:
 	required_device<acan_sound_device> m_sound;
 	required_shared_ptr<uint8_t> m_soundram;
 	required_ioport_array<2> m_pads;
+
+	devcb_read8 read_cpu_space;
+	devcb_write8 write_cpu_space;
 };
 
 #endif // MAME_AUDIO_SUPRACAN_UM6619_H
