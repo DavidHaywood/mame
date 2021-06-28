@@ -182,17 +182,17 @@ void supracan_state::write_cpu_byte(offs_t offset, uint8_t data)
 WRITE_LINE_MEMBER( supracan_state::vblank_w )
 {
 	// NMI
-	m_maincpu->set_input_line(M68K_IRQ_7, state);
+	m_maincpu->set_input_line(M68K_IRQ_7, state ? HOLD_LINE : CLEAR_LINE);
 }
 
 WRITE_LINE_MEMBER( supracan_state::hblank_w )
 {
-	m_maincpu->set_input_line(M68K_IRQ_3, state);
+	m_maincpu->set_input_line(M68K_IRQ_3, state ? HOLD_LINE : CLEAR_LINE);
 }
 
 WRITE_LINE_MEMBER( supracan_state::lineirq_w )
 {
-	m_maincpu->set_input_line(M68K_IRQ_5, state);
+	m_maincpu->set_input_line(M68K_IRQ_5, state ? HOLD_LINE : CLEAR_LINE);
 }
 
 

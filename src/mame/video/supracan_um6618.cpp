@@ -1098,7 +1098,7 @@ void supracan_um6618_video_device::video_w(offs_t offset, uint16_t data, uint16_
 #if 0
 		if (!m_irq_mask && !m_hbl_mask)
 		{
-			vblank_irq(CLEAR_LINE);
+			vblank_irq(0);
 		}
 #endif
 		LOGMASKED(LOG_IRQS, "irq_mask = %04x\n", data);
@@ -1121,7 +1121,7 @@ uint16_t supracan_um6618_video_device::video_r(offs_t offset, uint16_t mem_mask)
 		if (!machine().side_effects_disabled())
 		{
 			LOGMASKED(LOG_HFVIDEO, "read video IRQ flags (%04x)\n", data);
-			vblank_irq(CLEAR_LINE);
+			vblank_irq(0);
 		}
 		break;
 	case 0x02/2: // Current scanline
@@ -1161,21 +1161,21 @@ uint16_t supracan_um6618_video_device::video_r(offs_t offset, uint16_t mem_mask)
 
 TIMER_CALLBACK_MEMBER(supracan_um6618_video_device::hbl_callback)
 {
-	hblank_irq(HOLD_LINE);
+	hblank_irq(1);
 
 	m_hbl_timer->adjust(attotime::never);
 }
 
 TIMER_CALLBACK_MEMBER(supracan_um6618_video_device::line_on_callback)
 {
-	line_irq(HOLD_LINE);
+	line_irq(1);
 
 	m_line_on_timer->adjust(attotime::never);
 }
 
 TIMER_CALLBACK_MEMBER(supracan_um6618_video_device::line_off_callback)
 {
-	line_irq(CLEAR_LINE);
+	line_irq(0);
 
 	m_line_on_timer->adjust(attotime::never);
 }
@@ -1206,7 +1206,7 @@ TIMER_CALLBACK_MEMBER(supracan_um6618_video_device::video_callback)
 		if (m_irq_mask & 1)
 		{
 			LOGMASKED(LOG_IRQS, "Triggering VBL IRQ\n\n");
-			vblank_irq(HOLD_LINE);
+			vblank_irq(1);
 		}
 		break;
 	}
@@ -1285,7 +1285,7 @@ void supracan_um6618_video_device::get_tilemap_info_common(int layer, tile_data 
 		break;
 
 	default:
-		LOGMASKED(LOG_UNKNOWNS, "Unsupported tilemap mode: %d\n", (m_tilemap_mode[layer] & 0x7000) >> 12);
+		//LOGMASKED(LOG_UNKNOWNS, "Unsupported tilemap mode: %d\n", (m_tilemap_mode[layer] & 0x7000) >> 12);
 		break;
 	}
 

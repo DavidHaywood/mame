@@ -359,8 +359,8 @@ void supracan_um6619_audiosoc_device::dma_w(int offset, uint16_t data, uint16_t 
 		LOGMASKED(LOG_DMA, "dma_w: control %d: %04x\n", ch, data);
 		if (data & 0x8800)
 		{
-//            if (data & 0x2000)
-//            m_dma_regs.source-=2;
+			//if (data & 0x2000)
+			//	m_dma_regs.source-=2;
 			LOGMASKED(LOG_DMA, "dma_w: Kicking off a DMA from %08x to %08x, %d bytes (%04x)\n", m_dma_regs.source[ch], m_dma_regs.dest[ch], m_dma_regs.count[ch] + 1, data);
 
 			for (int i = 0; i <= m_dma_regs.count[ch]; i++)
