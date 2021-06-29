@@ -17,6 +17,7 @@ class supracan_um6618_video_device : public device_t
 public:
 	supracan_um6618_video_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
 
+	template <typename T> void set_screen_tag(T &&tag) { m_screen.set_tag(std::forward<T>(tag)); }
 	auto set_read_cpu_space() { return read_cpu_space.bind(); }
 	auto set_write_cpu_space() { return write_cpu_space.bind(); }
 	auto set_vblank_irq() { return vblank_irq.bind(); }
@@ -27,16 +28,16 @@ public:
 	void video_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	void vram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 
+	uint32_t screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
+
 protected:
 	virtual void device_start() override;
 	virtual void device_reset() override;
 	virtual void device_add_mconfig(machine_config &config) override;
 
-
 private:
 	void palette_init(palette_device &palette) const;
 
-	uint32_t screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 
 	struct sprdma_regs_t
 	{
@@ -97,11 +98,12 @@ private:
 	TILE_GET_INFO_MEMBER(get_tilemap1_tile_info);
 	TILE_GET_INFO_MEMBER(get_tilemap2_tile_info);
 	TILE_GET_INFO_MEMBER(get_roz_tile_info);
+
 	TIMER_CALLBACK_MEMBER(hbl_callback);
 	TIMER_CALLBACK_MEMBER(line_on_callback);
 	TIMER_CALLBACK_MEMBER(line_off_callback);
 	TIMER_CALLBACK_MEMBER(video_callback);
-	DECLARE_DEVICE_IMAGE_LOAD_MEMBER(cart_load);
+
 	int get_tilemap_region(int layer);
 	void get_tilemap_info_common(int layer, tile_data &tileinfo, int count);
 	void get_roz_tilemap_info(int layer, tile_data &tileinfo, int count);
@@ -117,8 +119,8 @@ private:
 	required_device<screen_device> m_screen;
 	required_shared_ptr<uint16_t> m_vram;
 
-	devcb_read8 read_cpu_space;
-	devcb_write8 write_cpu_space;
+	devcb_read16 read_cpu_space;
+	devcb_write16 write_cpu_space;
 	devcb_write_line vblank_irq;
 	devcb_write_line line_irq;
 	devcb_write_line hblank_irq;

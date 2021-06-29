@@ -4,7 +4,8 @@
 /*
 	The UM6619 integrates:
 
-	Video Controller
+	Video Controller (Tilemaps + Roz Tilemaps + Sprites)
+	Palette Controller + RAM
 	Sprite DMA Controller
 	Interrupt Generation
 
@@ -60,7 +61,7 @@ DEFINE_DEVICE_TYPE(SUPRACAN_UM6618_VIDEO, supracan_um6618_video_device, "umc6618
 supracan_um6618_video_device::supracan_um6618_video_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
 	: device_t(mconfig, SUPRACAN_UM6618_VIDEO, tag, owner, clock)
 	, m_gfxdecode(*this, "gfxdecode")
-	, m_screen(*this, "screen")
+	, m_screen(*this, finder_base::DUMMY_TAG)
 	, m_vram(*this, "vram")
 	, read_cpu_space(*this)
 	, write_cpu_space(*this)
@@ -990,16 +991,13 @@ void supracan_um6618_video_device::video_w(offs_t offset, uint16_t data, uint16_
 			{
 				if (data & 0x0100) // dma 0x00 fill (or fixed value?)
 				{
-					write_cpu_space(m_sprdma_regs.dst, 0x00);
-					write_cpu_space(m_sprdma_regs.dst + 1, 0x00);
+					write_cpu_space(m_sprdma_regs.dst, 0x0000);
 
 					m_sprdma_regs.dst += 2 * m_sprdma_regs.dst_inc;
-					//memset(supracan_vram, 0x00, 0x020000);
 				}
 				else
 				{
 					write_cpu_space(m_sprdma_regs.dst, read_cpu_space(m_sprdma_regs.src));
-					write_cpu_space(m_sprdma_regs.dst + 1, read_cpu_space(m_sprdma_regs.src + 1));
 
 					m_sprdma_regs.dst += 2 * m_sprdma_regs.dst_inc;
 					m_sprdma_regs.src += 2 * m_sprdma_regs.src_inc;
@@ -1462,11 +1460,6 @@ GFXDECODE_END
 
 void supracan_um6618_video_device::device_add_mconfig(machine_config &config)
 {
-	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);
-	m_screen->set_raw(XTAL(10'738'635)/2, 348, 0, 256, 256, 0, 240);  /* No idea if this is correct */
-	m_screen->set_screen_update(FUNC(supracan_um6618_video_device::screen_update));
-	m_screen->set_palette("palette");
-
 	PALETTE(config, "palette", FUNC(supracan_um6618_video_device::palette_init)).set_format(palette_device::xBGR_555, 32768);
 
 	GFXDECODE(config, m_gfxdecode, "palette", gfx_supracan);

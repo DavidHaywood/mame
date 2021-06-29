@@ -45,6 +45,7 @@ DEBUG TRICKS:
 #include "cpu/m68000/m68000.h"
 #include "bus/generic/slot.h"
 #include "bus/generic/carts.h"
+#include "screen.h"
 #include "softlist.h"
 #include "speaker.h"
 
@@ -64,6 +65,7 @@ public:
 		, m_cart(*this, "cartslot")
 		, m_um6618_vid(*this, "um6618_vid")
 		, m_acansound(*this, "acansound")
+		, m_screen(*this, "screen")
 	{
 	}
 
@@ -76,11 +78,10 @@ protected:
 private:
 	void supracan_mem(address_map &map);
 
-	uint8_t read_cpu_byte(offs_t offset);
-	void write_cpu_byte(offs_t offset, uint8_t data);
-
 	uint16_t read_cpu_byte16(offs_t offset, uint16_t mem_mask = ~0);
 	void write_cpu_byte16(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+
+	uint32_t screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 
 	DECLARE_WRITE_LINE_MEMBER(vblank_w);
 	DECLARE_WRITE_LINE_MEMBER(hblank_w);
@@ -92,6 +93,7 @@ private:
 	required_device<generic_slot_device> m_cart;
 	required_device<supracan_um6618_video_device> m_um6618_vid;
 	required_device<acan_sound_device> m_acansound;
+	required_device<screen_device> m_screen;
 };
 
 
@@ -142,18 +144,6 @@ void supracan_state::machine_reset()
 {
 }
 
-uint8_t supracan_state::read_cpu_byte(offs_t offset)
-{
-	address_space &mem = m_maincpu->space(AS_PROGRAM);
-	return mem.read_byte(offset);
-}
-
-void supracan_state::write_cpu_byte(offs_t offset, uint8_t data)
-{
-	address_space &mem = m_maincpu->space(AS_PROGRAM);
-	mem.write_byte(offset, data);
-}
-
 uint16_t supracan_state::read_cpu_byte16(offs_t offset, uint16_t mem_mask)
 {
 	address_space &mem = m_maincpu->space(AS_PROGRAM);
@@ -183,7 +173,10 @@ WRITE_LINE_MEMBER( supracan_state::lineirq_w )
 	m_maincpu->set_input_line(M68K_IRQ_5, state ? HOLD_LINE : CLEAR_LINE);
 }
 
-
+uint32_t supracan_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect)
+{
+	return m_um6618_vid->screen_update(screen, bitmap, cliprect);
+}
 
 void supracan_state::supracan(machine_config &config)
 {
@@ -191,15 +184,19 @@ void supracan_state::supracan(machine_config &config)
 	m_maincpu->set_addrmap(AS_PROGRAM, &supracan_state::supracan_mem);
 
 	SUPRACAN_UM6618_VIDEO(config, m_um6618_vid, 0);
-	m_um6618_vid->set_read_cpu_space().set(FUNC(supracan_state::read_cpu_byte));
-	m_um6618_vid->set_write_cpu_space().set(FUNC(supracan_state::write_cpu_byte));
+	m_um6618_vid->set_read_cpu_space().set(FUNC(supracan_state::read_cpu_byte16));
+	m_um6618_vid->set_write_cpu_space().set(FUNC(supracan_state::write_cpu_byte16));
 	m_um6618_vid->set_vblank_irq().set(FUNC(supracan_state::vblank_w));
 	m_um6618_vid->set_hblank_irq().set(FUNC(supracan_state::hblank_w));
 	m_um6618_vid->set_line_irq().set(FUNC(supracan_state::lineirq_w));
+	m_um6618_vid->set_screen_tag("screen");
+
+	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);
+	m_screen->set_raw(XTAL(10'738'635)/2, 348, 0, 256, 256, 0, 240);  /* No idea if this is correct */
+	m_screen->set_screen_update(FUNC(supracan_state::screen_update));
+	m_screen->set_palette("um6618_vid:palette");
 
 	ACANSND(config, m_acansound, XTAL(3'579'545));
-	m_acansound->set_read_cpu_space().set(FUNC(supracan_state::read_cpu_byte));
-	m_acansound->set_write_cpu_space().set(FUNC(supracan_state::write_cpu_byte));
 	m_acansound->set_read_cpu_space16().set(FUNC(supracan_state::read_cpu_byte16));
 	m_acansound->set_write_cpu_space16().set(FUNC(supracan_state::write_cpu_byte16));
 	m_acansound->add_route(0, "lspeaker", 1.0);

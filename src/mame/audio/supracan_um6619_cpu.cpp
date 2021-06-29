@@ -50,8 +50,6 @@ supracan_um6619_cpu_device::supracan_um6619_cpu_device(const machine_config &mco
 	: m6502_device(mconfig, type, tag, owner, clock)
 	, m_soundram(*this, "soundram")
 	, m_pads(*this, "P%u", 1U)
-	, read_cpu_space(*this)
-	, write_cpu_space(*this)
 	, read_cpu_space16(*this)
 	, write_cpu_space16(*this)
 {
@@ -361,7 +359,8 @@ void supracan_um6619_cpu_device::dma_w(int offset, uint16_t data, uint16_t mem_m
 				}
 				else
 				{
-					write_cpu_space(m_dma_regs.dest[ch], read_cpu_space(m_dma_regs.source[ch]));
+					uint16_t data = read_cpu_space16(m_dma_regs.source[ch], (m_dma_regs.dest[ch] & 1) ? 0x00ff : 0xff00) >> ((m_dma_regs.dest[ch] & 1) ? 0 : 8);
+					write_cpu_space16(m_dma_regs.dest[ch], data << ((m_dma_regs.dest[ch] & 1) ? 0 : 8), (m_dma_regs.dest[ch] & 1) ? 0x00ff : 0xff00);
 
 					m_dma_regs.dest[ch]++;
 					m_dma_regs.source[ch]++;
@@ -428,19 +427,11 @@ ioport_constructor supracan_um6619_cpu_device::device_input_ports() const
 	return INPUT_PORTS_NAME(supracan);
 }
 
-void supracan_um6619_cpu_device::device_add_mconfig(machine_config &config)
-{
-	m6502_device::device_add_mconfig(config);
-
-//	set_addrmap(AS_PROGRAM, &);
-}
 
 void supracan_um6619_cpu_device::device_start()
 {
 	m6502_device::device_start();
 
-	read_cpu_space.resolve();
-	write_cpu_space.resolve_safe();
 	read_cpu_space16.resolve();
 	write_cpu_space16.resolve_safe();
 

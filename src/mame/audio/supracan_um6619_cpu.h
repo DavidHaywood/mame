@@ -24,8 +24,6 @@ public:
 	void dma_channel0_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	void dma_channel1_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 
-	auto set_read_cpu_space() { return read_cpu_space.bind(); }
-	auto set_write_cpu_space() { return write_cpu_space.bind(); }
 	auto set_read_cpu_space16() { return read_cpu_space16.bind(); }
 	auto set_write_cpu_space16() { return write_cpu_space16.bind(); }
 
@@ -34,7 +32,6 @@ protected:
 
 	virtual void device_start() override;
 	virtual void device_reset() override;
-	virtual void device_add_mconfig(machine_config &config) override;
 	virtual ioport_constructor device_input_ports() const override;
 
 	virtual uint8_t sound_read(offs_t offset) { return 0x00; }
@@ -75,8 +72,6 @@ private:
 
 	required_ioport_array<2> m_pads;
 
-	devcb_read8 read_cpu_space;
-	devcb_write8 write_cpu_space;
 	devcb_read16 read_cpu_space16;
 	devcb_write16 write_cpu_space16;
 };
