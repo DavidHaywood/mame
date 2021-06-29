@@ -36,7 +36,7 @@
 #define LOG_68K_SOUND   (1 << 12)
 #define LOG_CONTROLS    (1 << 13)
 
-#define VERBOSE         (LOG_SOUND)
+#define VERBOSE         (0)
 #include "logmacro.h"
 
 DEFINE_DEVICE_TYPE(SUPRACAN_UM6619_CPU, supracan_um6619_cpu_device, "umc6619_cpu", "UM6619 CPU + Glue")
@@ -47,8 +47,7 @@ supracan_um6619_cpu_device::supracan_um6619_cpu_device(const machine_config &mco
 }
 
 supracan_um6619_cpu_device::supracan_um6619_cpu_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, u32 clock)
-	: device_t(mconfig, type, tag, owner, clock)
-	, m_soundcpu(*this, "soundcpu")
+	: m6502_device(mconfig, type, tag, owner, clock)
 	, m_soundram(*this, "soundram")
 	, m_pads(*this, "P%u", 1U)
 	, read_cpu_space(*this)
@@ -56,6 +55,7 @@ supracan_um6619_cpu_device::supracan_um6619_cpu_device(const machine_config &mco
 	, read_cpu_space16(*this)
 	, write_cpu_space16(*this)
 {
+	program_config.m_internal_map = std::move(address_map_constructor(FUNC(supracan_um6619_cpu_device::supracan_sound_mem), this));
 }
 
 uint8_t supracan_um6619_cpu_device::_6502_soundmem_r(offs_t offset)
@@ -90,7 +90,7 @@ uint8_t supracan_um6619_cpu_device::_6502_soundmem_r(offs_t offset)
 		if (!machine().side_effects_disabled())
 		{
 			LOGMASKED(LOG_SOUND, "%s: %s: 6502_soundmem_r: Sound IRQ source read + clear: %02x\n", machine().describe_context(), machine().time().to_string(), data);
-			m_soundcpu->set_input_line(0, CLEAR_LINE);
+			set_input_line(0, CLEAR_LINE);
 		}
 		break;
 	case 0x420:
@@ -234,12 +234,6 @@ void supracan_um6619_cpu_device::supracan_sound_mem(address_map &map)
 	map(0x0000, 0xffff).rw(FUNC(supracan_um6619_cpu_device::_6502_soundmem_r), FUNC(supracan_um6619_cpu_device::_6502_soundmem_w)).share("soundram");
 }
 
-uint8_t supracan_um6619_cpu_device::sound_ram_read(offs_t offset)
-{
-	return m_soundram[offset];
-}
-
-
 void supracan_um6619_cpu_device::set_sound_irq(uint8_t bit, uint8_t state)
 {
 	const uint8_t old = m_soundcpu_irq_source;
@@ -250,20 +244,9 @@ void supracan_um6619_cpu_device::set_sound_irq(uint8_t bit, uint8_t state)
 	const uint8_t changed = old ^ m_soundcpu_irq_source;
 	if (changed)
 	{
-		m_soundcpu->set_input_line(0, (m_soundcpu_irq_enable & m_soundcpu_irq_source) ? ASSERT_LINE : CLEAR_LINE);
+		set_input_line(0, (m_soundcpu_irq_enable & m_soundcpu_irq_source) ? ASSERT_LINE : CLEAR_LINE);
 	}
 }
-
-void supracan_um6619_cpu_device::sound_timer_irq(int state)
-{
-	set_sound_irq(7, state);
-}
-
-void supracan_um6619_cpu_device::sound_dma_irq(int state)
-{
-	set_sound_irq(6, state);
-}
-
 
 uint16_t supracan_um6619_cpu_device::sound_r(offs_t offset, uint16_t mem_mask)
 {
@@ -297,7 +280,7 @@ void supracan_um6619_cpu_device::sound_w(offs_t offset, uint16_t data, uint16_t 
 	case 0x000a/2:  /* Sound cpu IRQ request. */
 		LOGMASKED(LOG_SOUND, "%s: Sound CPU IRQ request: %04x\n", machine().describe_context(), data);
 		set_sound_irq(5, 1);
-		//m_soundcpu->set_input_line(0, ASSERT_LINE);
+		//set_input_line(0, ASSERT_LINE);
 		break;
 	case 0x001c/2:  /* Sound cpu control. Bit 0 tied to sound cpu RESET line */
 	{
@@ -309,13 +292,13 @@ void supracan_um6619_cpu_device::sound_w(offs_t offset, uint16_t data, uint16_t 
 			if (BIT(m_sound_cpu_ctrl, 0))
 			{
 				/* Reset and enable the sound cpu */
-				m_soundcpu->set_input_line(INPUT_LINE_HALT, CLEAR_LINE);
-				m_soundcpu->reset();
+				set_input_line(INPUT_LINE_HALT, CLEAR_LINE);
+				m6502_device::device_reset();
 			}
 			else
 			{
 				/* Halt the sound cpu */
-				m_soundcpu->set_input_line(INPUT_LINE_HALT, ASSERT_LINE);
+				set_input_line(INPUT_LINE_HALT, ASSERT_LINE);
 			}
 		}
 		LOGMASKED(LOG_SOUND, "%s: Sound CPU ctrl write: %04x\n", machine().describe_context(), data);
@@ -330,8 +313,6 @@ void supracan_um6619_cpu_device::sound_w(offs_t offset, uint16_t data, uint16_t 
 
 void supracan_um6619_cpu_device::dma_w(int offset, uint16_t data, uint16_t mem_mask, int ch)
 {
-	//address_space& mem = 0;// *nullptr;// m_maincpu->space(AS_PROGRAM);
-
 	switch (offset)
 	{
 	case 0x00/2: // Source address MSW
@@ -449,14 +430,15 @@ ioport_constructor supracan_um6619_cpu_device::device_input_ports() const
 
 void supracan_um6619_cpu_device::device_add_mconfig(machine_config &config)
 {
-	M6502(config, m_soundcpu, XTAL(3'579'545));     /* TODO: Verify actual clock */
-	m_soundcpu->set_addrmap(AS_PROGRAM, &supracan_um6619_cpu_device::supracan_sound_mem);
+	m6502_device::device_add_mconfig(config);
 
-
+//	set_addrmap(AS_PROGRAM, &);
 }
 
 void supracan_um6619_cpu_device::device_start()
 {
+	m6502_device::device_start();
+
 	read_cpu_space.resolve();
 	write_cpu_space.resolve_safe();
 	read_cpu_space16.resolve();
@@ -479,6 +461,8 @@ void supracan_um6619_cpu_device::device_start()
 
 void supracan_um6619_cpu_device::device_reset()
 {
+	m6502_device::device_reset();
+
 	m_soundcpu_irq_enable = 0;
 	m_soundcpu_irq_source = 0;
 	m_sound_cpu_ctrl = 0;
@@ -491,5 +475,5 @@ void supracan_um6619_cpu_device::device_reset()
 
 	std::fill(std::begin(m_latched_controls), std::end(m_latched_controls), 0);
 
-	m_soundcpu->set_input_line(INPUT_LINE_HALT, ASSERT_LINE);
+	set_input_line(INPUT_LINE_HALT, ASSERT_LINE);
 }
