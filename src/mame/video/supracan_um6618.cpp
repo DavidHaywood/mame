@@ -1,5 +1,5 @@
-// license:BSD-3-Clause
-// copyright-holders:David Haywood
+// license:LGPL-2.1+
+// copyright-holders:Angelo Salese,Ryan Holtz,David Haywood
 
 /*
 	The UM6619 integrates:
@@ -73,9 +73,9 @@ supracan_um6618_video_device::supracan_um6618_video_device(const machine_config 
 
 void supracan_um6618_video_device::device_start()
 {
-	m_sprite_final_bitmap.allocate(1024, 1024, BITMAP_FORMAT_IND16);
-	m_sprite_mask_bitmap.allocate(1024, 1024, BITMAP_FORMAT_IND8);
-	m_prio_bitmap.allocate(1024, 1024, BITMAP_FORMAT_IND8);
+	m_sprite_final_bitmap.allocate(320, 256, BITMAP_FORMAT_IND16);
+	m_sprite_mask_bitmap.allocate(320, 256, BITMAP_FORMAT_IND8);
+	m_prio_bitmap.allocate(320, 256, BITMAP_FORMAT_IND8);
 
 	m_vram_addr_swapped.resize(0x20000); // hack for 1bpp layer at startup
 

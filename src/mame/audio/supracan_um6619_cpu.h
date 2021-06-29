@@ -1,5 +1,5 @@
-// license:BSD-3-Clause
-// copyright-holders:David Haywood
+// license:LGPL-2.1+
+// copyright-holders:Angelo Salese,Ryan Holtz,David Haywood
 
 #ifndef MAME_AUDIO_SUPRACAN_UM6619_H
 #define MAME_AUDIO_SUPRACAN_UM6619_H

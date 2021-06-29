@@ -2,14 +2,43 @@
 // copyright-holders:Ryan Holtz, superctr
 /***************************************************************************
 
-    Super A'Can sound driver
+    Super A'Can sound driver (UM6619)
+
+	The UM6619 integrates:
+
+	implemented here:
+
+	Custom audio hardware
+
+	implemented in supracan_um6618_cpu.cpp:
+
+	6502 CPU
+	DMA Controller
+	Pad Interface for 2 controllers
+
 
 	Currently has a number of unknown registers and functionality.
+
+	--------------
+
+    There are 6 interrupt sources on the 6502 side, all of which use the IRQ line.
+    The register at 0x411 is bitmapped to indicate what source(s) are active.
+    In priority order from most to least important, they are:
+
+    411 value  How acked                     Notes
+    0x40       read reg 0x16 of sound chip   used for DMA-driven sample playback. Register 0x16 may contain which DMA-driven samples are active.
+    0x04       read at 0x405                 latch 1?  0xcd is magic value
+    0x08       read at 0x404                 latch 2?  0xcd is magic value
+    0x10       read at 0x409                 unknown, dispatched but not used in startup 6502 code
+    0x20       read at 0x40a                 IRQ request from 68k, flags data available in shared-RAM mailbox
+    0x80       read reg 0x14 of sound chip   depends on reg 0x14 of sound chip & 0x40: if not set writes 0x8f to reg 0x14,
+                                             otherwise writes 0x4f to reg 0x14 and performs additional processing
+
 
 ****************************************************************************/
 
 #include "emu.h"
-#include "acan.h"
+#include "supracan_um6619_audiosoc.h"
 
 #define VERBOSE		(0)
 #include "logmacro.h"

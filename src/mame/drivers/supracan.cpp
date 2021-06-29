@@ -49,7 +49,7 @@ DEBUG TRICKS:
 #include "softlist.h"
 #include "speaker.h"
 
-#include "audio/acan.h"
+#include "audio/supracan_um6619_audiosoc.h"
 #include "video/supracan_um6618.h"
 
 namespace {

@@ -1,5 +1,5 @@
-// license:BSD-3-Clause
-// copyright-holders:David Haywood
+// license:LGPL-2.1+
+// copyright-holders:Angelo Salese,Ryan Holtz,David Haywood
 
 #ifndef MAME_VIDEO_SUPRACAN_UM6618_H
 #define MAME_VIDEO_SUPRACAN_UM6618_H

@@ -2499,8 +2499,8 @@ files {
 	MAME_DIR .. "src/mame/video/supracan_um6618.h",
 	MAME_DIR .. "src/mame/audio/supracan_um6619_cpu.cpp",
 	MAME_DIR .. "src/mame/audio/supracan_um6619_cpu.h",
-	MAME_DIR .. "src/mame/audio/acan.cpp",
-	MAME_DIR .. "src/mame/audio/acan.h",
+	MAME_DIR .. "src/mame/audio/supracan_um6619_audiosoc.cpp",
+	MAME_DIR .. "src/mame/audio/supracan_um6619_audiosoc.h",
 }
 
 createMESSProjects(_target, _subtarget, "galaxy")
