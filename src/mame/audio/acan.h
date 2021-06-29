@@ -11,17 +11,15 @@
 
 #pragma once
 
-class acan_sound_device : public device_t, public device_sound_interface
+#include "supracan_um6619.h"
+
+class acan_sound_device : public supracan_um6619_audiosoc_device, public device_sound_interface
 {
 public:
 	acan_sound_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
 
-	auto ram_read() { return m_ram_read.bind(); }
-	auto timer_irq_handler() { return m_timer_irq_handler.bind(); }
-	auto dma_irq_handler() { return m_dma_irq_handler.bind(); }
-
-	uint8_t read(offs_t offset);
-	void write(offs_t offset, uint8_t data);
+	virtual uint8_t sound_read(offs_t offset) override;
+	virtual void sound_write(offs_t offset, uint8_t data) override;
 
 protected:
 	// device-level overrides
@@ -54,9 +52,6 @@ private:
 
 	sound_stream *m_stream;
 	emu_timer *m_timer;
-	devcb_write_line m_timer_irq_handler;
-	devcb_write_line m_dma_irq_handler;
-	devcb_read8 m_ram_read;
 	uint16_t m_active_channels;
 	uint16_t m_dma_channels;
 	acan_channel m_channels[16];

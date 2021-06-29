@@ -24,7 +24,6 @@
     0x80       read reg 0x14 of sound chip   depends on reg 0x14 of sound chip & 0x40: if not set writes 0x8f to reg 0x14,
                                              otherwise writes 0x4f to reg 0x14 and performs additional processing
 
-	should this be merged with acan.cpp for the sound, as it's an all-in-one integrated part (currently not done as they use different licenses)
 */
 
 #include "emu.h"
@@ -42,11 +41,15 @@
 
 DEFINE_DEVICE_TYPE(SUPRACAN_UM6619_AUDIOSOC, supracan_um6619_audiosoc_device, "umc6619", "UM6619 Audio System on a Chip")
 
-
 supracan_um6619_audiosoc_device::supracan_um6619_audiosoc_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
-	: device_t(mconfig, SUPRACAN_UM6619_AUDIOSOC, tag, owner, clock)
+	: supracan_um6619_audiosoc_device(mconfig, SUPRACAN_UM6619_AUDIOSOC, tag, owner, clock)
+{
+}
+
+supracan_um6619_audiosoc_device::supracan_um6619_audiosoc_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, u32 clock)
+	: device_t(mconfig, type, tag, owner, clock)
 	, m_soundcpu(*this, "soundcpu")
-	, m_sound(*this, "acansnd")
+	//, m_sound(*this, "acansnd")
 	, m_soundram(*this, "soundram")
 	, m_pads(*this, "P%u", 1U)
 	, read_cpu_space(*this)
@@ -55,7 +58,6 @@ supracan_um6619_audiosoc_device::supracan_um6619_audiosoc_device(const machine_c
 	, write_cpu_space16(*this)
 {
 }
-
 
 uint8_t supracan_um6619_audiosoc_device::_6502_soundmem_r(offs_t offset)
 {
@@ -102,7 +104,7 @@ uint8_t supracan_um6619_audiosoc_device::_6502_soundmem_r(offs_t offset)
 	case 0x422:
 		if (!machine().side_effects_disabled())
 		{
-			data = m_sound->read(m_sound_reg_addr);
+			data = sound_read(m_sound_reg_addr);
 			LOGMASKED(LOG_SOUND, "%s: %s: 6502_soundmem_r: Sound hardware reg data read:     0422 = %02x\n", machine().describe_context(), machine().time().to_string(), data);
 		}
 		break;
@@ -215,7 +217,7 @@ void supracan_um6619_audiosoc_device::_6502_soundmem_w(offs_t offset, uint8_t da
 		attotime delta = (s_curr_time == attotime::zero ? attotime::zero : (now - s_curr_time));
 		s_curr_time = now;
 		LOGMASKED(LOG_SOUND, "%s: %s: 6502_soundmem_w: Sound data write:                 0422 = %02x (delta %0.3f)\n", machine().describe_context(), now.to_string(), data, (float)delta.as_double());
-		m_sound->write(m_sound_reg_addr, data);
+		sound_write(m_sound_reg_addr, data);
 		break;
 	}
 	default:
@@ -451,15 +453,7 @@ void supracan_um6619_audiosoc_device::device_add_mconfig(machine_config &config)
 	M6502(config, m_soundcpu, XTAL(3'579'545));     /* TODO: Verify actual clock */
 	m_soundcpu->set_addrmap(AS_PROGRAM, &supracan_um6619_audiosoc_device::supracan_sound_mem);
 
-	SPEAKER(config, "lspeaker").front_left();
-	SPEAKER(config, "rspeaker").front_right();
 
-	ACANSND(config, m_sound, XTAL(3'579'545));
-	m_sound->ram_read().set(FUNC(supracan_um6619_audiosoc_device::sound_ram_read));
-	m_sound->timer_irq_handler().set(FUNC(supracan_um6619_audiosoc_device::sound_timer_irq));
-	m_sound->dma_irq_handler().set(FUNC(supracan_um6619_audiosoc_device::sound_dma_irq));
-	m_sound->add_route(0, "lspeaker", 1.0);
-	m_sound->add_route(1, "rspeaker", 1.0);
 }
 
 void supracan_um6619_audiosoc_device::device_start()

@@ -6,12 +6,8 @@
 
 #pragma once
 
-#include "audio/acan.h"
-
 #include "cpu/m6502/m6502.h"
-
-#include "speaker.h"
-
+//#include "speaker.h"
 
 DECLARE_DEVICE_TYPE(SUPRACAN_UM6619_AUDIOSOC, supracan_um6619_audiosoc_device)
 
@@ -34,13 +30,20 @@ public:
 	auto set_read_cpu_space16() { return read_cpu_space16.bind(); }
 	auto set_write_cpu_space16() { return write_cpu_space16.bind(); }
 
-
-
 protected:
+	supracan_um6619_audiosoc_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, u32 clock);
+
 	virtual void device_start() override;
 	virtual void device_reset() override;
 	virtual void device_add_mconfig(machine_config &config) override;
 	virtual ioport_constructor device_input_ports() const override;
+
+	virtual uint8_t sound_read(offs_t offset) { return 0x00; }
+	virtual void sound_write(offs_t offset, uint8_t data) {}
+
+	uint8_t sound_ram_read(offs_t offset);
+	void sound_timer_irq(int state);
+	void sound_dma_irq(int state);
 
 private:
 
@@ -54,9 +57,6 @@ private:
 
 	void supracan_sound_mem(address_map &map);
 
-	uint8_t sound_ram_read(offs_t offset);
-	void sound_timer_irq(int state);
-	void sound_dma_irq(int state);
 
 
 	void _6502_soundmem_w(offs_t offset, uint8_t data);
@@ -78,7 +78,7 @@ private:
 	dma_regs_t m_dma_regs;
 
 	required_device<cpu_device> m_soundcpu;
-	required_device<acan_sound_device> m_sound;
+	//required_device<acan_sound_device> m_sound;
 	required_shared_ptr<uint8_t> m_soundram;
 	required_ioport_array<2> m_pads;
 

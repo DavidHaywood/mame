@@ -46,8 +46,9 @@ DEBUG TRICKS:
 #include "bus/generic/slot.h"
 #include "bus/generic/carts.h"
 #include "softlist.h"
+#include "speaker.h"
 
-#include "audio/supracan_um6619.h"
+#include "audio/acan.h"
 #include "video/supracan_um6618.h"
 
 namespace {
@@ -62,7 +63,7 @@ public:
 		, m_maincpu(*this, "maincpu")
 		, m_cart(*this, "cartslot")
 		, m_um6618_vid(*this, "um6618_vid")
-		, m_um6619_audio(*this, "um6619_audio")
+		, m_acansound(*this, "acansound")
 	{
 	}
 
@@ -90,7 +91,7 @@ private:
 	required_device<cpu_device> m_maincpu;
 	required_device<generic_slot_device> m_cart;
 	required_device<supracan_um6618_video_device> m_um6618_vid;
-	required_device<supracan_um6619_audiosoc_device> m_um6619_audio;
+	required_device<acan_sound_device> m_acansound;
 };
 
 
@@ -98,10 +99,10 @@ void supracan_state::supracan_mem(address_map &map)
 {
 
 	// 0x000000..0x3fffff is mapped by the cartslot
-	map(0xe80000, 0xe8ffff).rw(m_um6619_audio, FUNC(supracan_um6619_audiosoc_device::_68k_soundram_r), FUNC(supracan_um6619_audiosoc_device::_68k_soundram_w));
-	map(0xe90000, 0xe9001f).rw(m_um6619_audio, FUNC(supracan_um6619_audiosoc_device::sound_r), FUNC(supracan_um6619_audiosoc_device::sound_w));
-	map(0xe90020, 0xe9002f).w(m_um6619_audio, FUNC(supracan_um6619_audiosoc_device::dma_channel0_w));
-	map(0xe90030, 0xe9003f).w(m_um6619_audio, FUNC(supracan_um6619_audiosoc_device::dma_channel1_w));
+	map(0xe80000, 0xe8ffff).rw(m_acansound, FUNC(acan_sound_device::_68k_soundram_r), FUNC(acan_sound_device::_68k_soundram_w));
+	map(0xe90000, 0xe9001f).rw(m_acansound, FUNC(acan_sound_device::sound_r), FUNC(acan_sound_device::sound_w));
+	map(0xe90020, 0xe9002f).w(m_acansound, FUNC(acan_sound_device::dma_channel0_w));
+	map(0xe90030, 0xe9003f).w(m_acansound, FUNC(acan_sound_device::dma_channel1_w));
 
 	map(0xf00000, 0xf001ff).rw(m_um6618_vid, FUNC(supracan_um6618_video_device::video_r), FUNC(supracan_um6618_video_device::video_w));
 	map(0xf00200, 0xf003ff).ram().w("um6618_vid:palette", FUNC(palette_device::write16)).share("um6618_vid:palette");
@@ -196,13 +197,18 @@ void supracan_state::supracan(machine_config &config)
 	m_um6618_vid->set_hblank_irq().set(FUNC(supracan_state::hblank_w));
 	m_um6618_vid->set_line_irq().set(FUNC(supracan_state::lineirq_w));
 
-	SUPRACAN_UM6619_AUDIOSOC(config, m_um6619_audio, 0); 
-	m_um6619_audio->set_read_cpu_space().set(FUNC(supracan_state::read_cpu_byte));
-	m_um6619_audio->set_write_cpu_space().set(FUNC(supracan_state::write_cpu_byte));
-	m_um6619_audio->set_read_cpu_space16().set(FUNC(supracan_state::read_cpu_byte16));
-	m_um6619_audio->set_write_cpu_space16().set(FUNC(supracan_state::write_cpu_byte16));
+	ACANSND(config, m_acansound, XTAL(3'579'545));
+	m_acansound->set_read_cpu_space().set(FUNC(supracan_state::read_cpu_byte));
+	m_acansound->set_write_cpu_space().set(FUNC(supracan_state::write_cpu_byte));
+	m_acansound->set_read_cpu_space16().set(FUNC(supracan_state::read_cpu_byte16));
+	m_acansound->set_write_cpu_space16().set(FUNC(supracan_state::write_cpu_byte16));
+	m_acansound->add_route(0, "lspeaker", 1.0);
+	m_acansound->add_route(1, "rspeaker", 1.0);
 
-	config.set_perfect_quantum("um6619_audio:soundcpu");
+	SPEAKER(config, "lspeaker").front_left();
+	SPEAKER(config, "rspeaker").front_right();
+
+	config.set_perfect_quantum("acansound:soundcpu");
 
 	generic_cartslot_device &cartslot(GENERIC_CARTSLOT(config, "cartslot", generic_plain_slot, "supracan_cart"));
 	cartslot.set_width(GENERIC_ROM16_WIDTH);
