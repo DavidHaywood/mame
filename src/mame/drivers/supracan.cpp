@@ -78,6 +78,9 @@ private:
 	uint8_t read_cpu_byte(offs_t offset);
 	void write_cpu_byte(offs_t offset, uint8_t data);
 
+	uint16_t read_cpu_byte16(offs_t offset, uint16_t mem_mask = ~0);
+	void write_cpu_byte16(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+
 	DECLARE_WRITE_LINE_MEMBER(vblank_w);
 	DECLARE_WRITE_LINE_MEMBER(hblank_w);
 	DECLARE_WRITE_LINE_MEMBER(lineirq_w);
@@ -179,6 +182,19 @@ void supracan_state::write_cpu_byte(offs_t offset, uint8_t data)
 	mem.write_byte(offset, data);
 }
 
+uint16_t supracan_state::read_cpu_byte16(offs_t offset, uint16_t mem_mask)
+{
+	address_space &mem = m_maincpu->space(AS_PROGRAM);
+	return mem.read_word(offset, mem_mask);
+}
+
+void supracan_state::write_cpu_byte16(offs_t offset, uint16_t data, uint16_t mem_mask)
+{
+	address_space &mem = m_maincpu->space(AS_PROGRAM);
+	mem.write_word(offset, data, mem_mask);
+}
+
+
 WRITE_LINE_MEMBER( supracan_state::vblank_w )
 {
 	// NMI
@@ -212,6 +228,8 @@ void supracan_state::supracan(machine_config &config)
 	SUPRACAN_UM6619_AUDIOSOC(config, m_um6619_audio, 0); 
 	m_um6619_audio->set_read_cpu_space().set(FUNC(supracan_state::read_cpu_byte));
 	m_um6619_audio->set_write_cpu_space().set(FUNC(supracan_state::write_cpu_byte));
+	m_um6619_audio->set_read_cpu_space16().set(FUNC(supracan_state::read_cpu_byte16));
+	m_um6619_audio->set_write_cpu_space16().set(FUNC(supracan_state::write_cpu_byte16));
 
 	config.set_perfect_quantum("um6619_audio:soundcpu");
 

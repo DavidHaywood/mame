@@ -51,6 +51,8 @@ supracan_um6619_audiosoc_device::supracan_um6619_audiosoc_device(const machine_c
 	, m_pads(*this, "P%u", 1U)
 	, read_cpu_space(*this)
 	, write_cpu_space(*this)
+	, read_cpu_space16(*this)
+	, write_cpu_space16(*this)
 {
 }
 
@@ -367,8 +369,7 @@ void supracan_um6619_audiosoc_device::dma_w(int offset, uint16_t data, uint16_t 
 			{
 				if (data & 0x1000)
 				{
-					write_cpu_space(m_dma_regs.dest[ch], read_cpu_space(m_dma_regs.source[ch]));
-					write_cpu_space(m_dma_regs.dest[ch] + 1, read_cpu_space(m_dma_regs.source[ch] + 1));
+					write_cpu_space16(m_dma_regs.dest[ch], read_cpu_space16(m_dma_regs.source[ch]));
 
 					m_dma_regs.dest[ch] += 2;
 					m_dma_regs.source[ch] += 2;
@@ -465,6 +466,8 @@ void supracan_um6619_audiosoc_device::device_start()
 {
 	read_cpu_space.resolve();
 	write_cpu_space.resolve_safe();
+	read_cpu_space16.resolve();
+	write_cpu_space16.resolve_safe();
 
 	save_item(NAME(m_soundcpu_irq_enable));
 	save_item(NAME(m_soundcpu_irq_source));

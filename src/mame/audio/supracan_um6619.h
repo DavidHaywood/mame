@@ -31,6 +31,10 @@ public:
 
 	auto set_read_cpu_space() { return read_cpu_space.bind(); }
 	auto set_write_cpu_space() { return write_cpu_space.bind(); }
+	auto set_read_cpu_space16() { return read_cpu_space16.bind(); }
+	auto set_write_cpu_space16() { return write_cpu_space16.bind(); }
+
+
 
 protected:
 	virtual void device_start() override;
@@ -80,6 +84,8 @@ private:
 
 	devcb_read8 read_cpu_space;
 	devcb_write8 write_cpu_space;
+	devcb_read16 read_cpu_space16;
+	devcb_write16 write_cpu_space16;
 };
 
 #endif // MAME_AUDIO_SUPRACAN_UM6619_H
