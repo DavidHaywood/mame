@@ -27,7 +27,7 @@
 */
 
 #include "emu.h"
-#include "audio/supracan_um6619.h"
+#include "audio/supracan_um6619_cpu.h"
 
 #define LOG_UNKNOWNS    (1 << 0)
 #define LOG_DMA         (1 << 1)
@@ -39,17 +39,16 @@
 #define VERBOSE         (LOG_SOUND)
 #include "logmacro.h"
 
-DEFINE_DEVICE_TYPE(SUPRACAN_UM6619_AUDIOSOC, supracan_um6619_audiosoc_device, "umc6619", "UM6619 Audio System on a Chip")
+DEFINE_DEVICE_TYPE(SUPRACAN_UM6619_CPU, supracan_um6619_cpu_device, "umc6619_cpu", "UM6619 CPU + Glue")
 
-supracan_um6619_audiosoc_device::supracan_um6619_audiosoc_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
-	: supracan_um6619_audiosoc_device(mconfig, SUPRACAN_UM6619_AUDIOSOC, tag, owner, clock)
+supracan_um6619_cpu_device::supracan_um6619_cpu_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+	: supracan_um6619_cpu_device(mconfig, SUPRACAN_UM6619_CPU, tag, owner, clock)
 {
 }
 
-supracan_um6619_audiosoc_device::supracan_um6619_audiosoc_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, u32 clock)
+supracan_um6619_cpu_device::supracan_um6619_cpu_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, u32 clock)
 	: device_t(mconfig, type, tag, owner, clock)
 	, m_soundcpu(*this, "soundcpu")
-	//, m_sound(*this, "acansnd")
 	, m_soundram(*this, "soundram")
 	, m_pads(*this, "P%u", 1U)
 	, read_cpu_space(*this)
@@ -59,7 +58,7 @@ supracan_um6619_audiosoc_device::supracan_um6619_audiosoc_device(const machine_c
 {
 }
 
-uint8_t supracan_um6619_audiosoc_device::_6502_soundmem_r(offs_t offset)
+uint8_t supracan_um6619_cpu_device::_6502_soundmem_r(offs_t offset)
 {
 	uint8_t data = m_soundram[offset];
 
@@ -129,7 +128,7 @@ uint8_t supracan_um6619_audiosoc_device::_6502_soundmem_r(offs_t offset)
 }
 
 
-void supracan_um6619_audiosoc_device::_68k_soundram_w(offs_t offset, uint16_t data, uint16_t mem_mask)
+void supracan_um6619_cpu_device::_68k_soundram_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	m_soundram[offset * 2 + 1] = data & 0xff;
 	m_soundram[offset * 2] = data >> 8;
@@ -148,7 +147,7 @@ void supracan_um6619_audiosoc_device::_68k_soundram_w(offs_t offset, uint16_t da
 	LOGMASKED(LOG_68K_SOUND, "%s: 68k sound RAM write: %04x & %04x = %04x\n", machine().describe_context(), offset << 1, mem_mask, (uint16_t)data);
 }
 
-uint16_t supracan_um6619_audiosoc_device::_68k_soundram_r(offs_t offset, uint16_t mem_mask)
+uint16_t supracan_um6619_cpu_device::_68k_soundram_r(offs_t offset, uint16_t mem_mask)
 {
 	uint16_t data = m_soundram[offset * 2] << 8;
 	data |= m_soundram[offset * 2 + 1];
@@ -172,7 +171,7 @@ uint16_t supracan_um6619_audiosoc_device::_68k_soundram_r(offs_t offset, uint16_
 
 
 
-void supracan_um6619_audiosoc_device::_6502_soundmem_w(offs_t offset, uint8_t data)
+void supracan_um6619_cpu_device::_6502_soundmem_w(offs_t offset, uint8_t data)
 {
 	static attotime s_curr_time = attotime::zero;
 	attotime now = machine().time();
@@ -230,18 +229,18 @@ void supracan_um6619_audiosoc_device::_6502_soundmem_w(offs_t offset, uint8_t da
 	}
 }
 
-void supracan_um6619_audiosoc_device::supracan_sound_mem(address_map &map)
+void supracan_um6619_cpu_device::supracan_sound_mem(address_map &map)
 {
-	map(0x0000, 0xffff).rw(FUNC(supracan_um6619_audiosoc_device::_6502_soundmem_r), FUNC(supracan_um6619_audiosoc_device::_6502_soundmem_w)).share("soundram");
+	map(0x0000, 0xffff).rw(FUNC(supracan_um6619_cpu_device::_6502_soundmem_r), FUNC(supracan_um6619_cpu_device::_6502_soundmem_w)).share("soundram");
 }
 
-uint8_t supracan_um6619_audiosoc_device::sound_ram_read(offs_t offset)
+uint8_t supracan_um6619_cpu_device::sound_ram_read(offs_t offset)
 {
 	return m_soundram[offset];
 }
 
 
-void supracan_um6619_audiosoc_device::set_sound_irq(uint8_t bit, uint8_t state)
+void supracan_um6619_cpu_device::set_sound_irq(uint8_t bit, uint8_t state)
 {
 	const uint8_t old = m_soundcpu_irq_source;
 	if (state)
@@ -255,18 +254,18 @@ void supracan_um6619_audiosoc_device::set_sound_irq(uint8_t bit, uint8_t state)
 	}
 }
 
-void supracan_um6619_audiosoc_device::sound_timer_irq(int state)
+void supracan_um6619_cpu_device::sound_timer_irq(int state)
 {
 	set_sound_irq(7, state);
 }
 
-void supracan_um6619_audiosoc_device::sound_dma_irq(int state)
+void supracan_um6619_cpu_device::sound_dma_irq(int state)
 {
 	set_sound_irq(6, state);
 }
 
 
-uint16_t supracan_um6619_audiosoc_device::sound_r(offs_t offset, uint16_t mem_mask)
+uint16_t supracan_um6619_cpu_device::sound_r(offs_t offset, uint16_t mem_mask)
 {
 	uint16_t data = 0;
 
@@ -291,7 +290,7 @@ uint16_t supracan_um6619_audiosoc_device::sound_r(offs_t offset, uint16_t mem_ma
 	return data;
 }
 
-void supracan_um6619_audiosoc_device::sound_w(offs_t offset, uint16_t data, uint16_t mem_mask)
+void supracan_um6619_cpu_device::sound_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	switch (offset)
 	{
@@ -329,7 +328,7 @@ void supracan_um6619_audiosoc_device::sound_w(offs_t offset, uint16_t data, uint
 }
 
 
-void supracan_um6619_audiosoc_device::dma_w(int offset, uint16_t data, uint16_t mem_mask, int ch)
+void supracan_um6619_cpu_device::dma_w(int offset, uint16_t data, uint16_t mem_mask, int ch)
 {
 	//address_space& mem = 0;// *nullptr;// m_maincpu->space(AS_PROGRAM);
 
@@ -400,12 +399,12 @@ void supracan_um6619_audiosoc_device::dma_w(int offset, uint16_t data, uint16_t 
 	}
 }
 
-void supracan_um6619_audiosoc_device::dma_channel0_w(offs_t offset, uint16_t data, uint16_t mem_mask)
+void supracan_um6619_cpu_device::dma_channel0_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	dma_w(offset, data, mem_mask, 0);
 }
 
-void supracan_um6619_audiosoc_device::dma_channel1_w(offs_t offset, uint16_t data, uint16_t mem_mask)
+void supracan_um6619_cpu_device::dma_channel1_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	dma_w(offset, data, mem_mask, 1);
 }
@@ -443,20 +442,20 @@ static INPUT_PORTS_START( supracan )
 	PORT_BIT(0x8000, IP_ACTIVE_LOW, IPT_BUTTON1) PORT_PLAYER(2) PORT_NAME("P2 Button A")
 INPUT_PORTS_END
 
-ioport_constructor supracan_um6619_audiosoc_device::device_input_ports() const
+ioport_constructor supracan_um6619_cpu_device::device_input_ports() const
 {
 	return INPUT_PORTS_NAME(supracan);
 }
 
-void supracan_um6619_audiosoc_device::device_add_mconfig(machine_config &config)
+void supracan_um6619_cpu_device::device_add_mconfig(machine_config &config)
 {
 	M6502(config, m_soundcpu, XTAL(3'579'545));     /* TODO: Verify actual clock */
-	m_soundcpu->set_addrmap(AS_PROGRAM, &supracan_um6619_audiosoc_device::supracan_sound_mem);
+	m_soundcpu->set_addrmap(AS_PROGRAM, &supracan_um6619_cpu_device::supracan_sound_mem);
 
 
 }
 
-void supracan_um6619_audiosoc_device::device_start()
+void supracan_um6619_cpu_device::device_start()
 {
 	read_cpu_space.resolve();
 	write_cpu_space.resolve_safe();
@@ -478,7 +477,7 @@ void supracan_um6619_audiosoc_device::device_start()
 	save_item(NAME(m_dma_regs.control));
 }
 
-void supracan_um6619_audiosoc_device::device_reset()
+void supracan_um6619_cpu_device::device_reset()
 {
 	m_soundcpu_irq_enable = 0;
 	m_soundcpu_irq_source = 0;

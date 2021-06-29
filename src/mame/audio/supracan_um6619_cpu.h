@@ -7,14 +7,13 @@
 #pragma once
 
 #include "cpu/m6502/m6502.h"
-//#include "speaker.h"
 
-DECLARE_DEVICE_TYPE(SUPRACAN_UM6619_AUDIOSOC, supracan_um6619_audiosoc_device)
+DECLARE_DEVICE_TYPE(SUPRACAN_UM6619_CPU, supracan_um6619_cpu_device)
 
-class supracan_um6619_audiosoc_device : public device_t
+class supracan_um6619_cpu_device : public device_t
 {
 public:
-	supracan_um6619_audiosoc_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
+	supracan_um6619_cpu_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
 
 	uint16_t _68k_soundram_r(offs_t offset, uint16_t mem_mask = ~0);
 	void _68k_soundram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
@@ -31,7 +30,7 @@ public:
 	auto set_write_cpu_space16() { return write_cpu_space16.bind(); }
 
 protected:
-	supracan_um6619_audiosoc_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, u32 clock);
+	supracan_um6619_cpu_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, u32 clock);
 
 	virtual void device_start() override;
 	virtual void device_reset() override;
@@ -78,7 +77,6 @@ private:
 	dma_regs_t m_dma_regs;
 
 	required_device<cpu_device> m_soundcpu;
-	//required_device<acan_sound_device> m_sound;
 	required_shared_ptr<uint8_t> m_soundram;
 	required_ioport_array<2> m_pads;
 

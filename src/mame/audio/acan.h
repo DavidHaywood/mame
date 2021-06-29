@@ -11,9 +11,9 @@
 
 #pragma once
 
-#include "supracan_um6619.h"
+#include "supracan_um6619_cpu.h"
 
-class acan_sound_device : public supracan_um6619_audiosoc_device, public device_sound_interface
+class acan_sound_device : public supracan_um6619_cpu_device, public device_sound_interface
 {
 public:
 	acan_sound_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);

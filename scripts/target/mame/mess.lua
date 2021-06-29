@@ -2497,8 +2497,8 @@ files {
 	MAME_DIR .. "src/mame/drivers/supracan.cpp",
 	MAME_DIR .. "src/mame/video/supracan_um6618.cpp",
 	MAME_DIR .. "src/mame/video/supracan_um6618.h",
-	MAME_DIR .. "src/mame/audio/supracan_um6619.cpp",
-	MAME_DIR .. "src/mame/audio/supracan_um6619.h",
+	MAME_DIR .. "src/mame/audio/supracan_um6619_cpu.cpp",
+	MAME_DIR .. "src/mame/audio/supracan_um6619_cpu.h",
 	MAME_DIR .. "src/mame/audio/acan.cpp",
 	MAME_DIR .. "src/mame/audio/acan.h",
 }

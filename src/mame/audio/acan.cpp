@@ -18,7 +18,7 @@
 DEFINE_DEVICE_TYPE(ACANSND, acan_sound_device, "acansound", "Super A'Can Audio")
 
 acan_sound_device::acan_sound_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
-	: supracan_um6619_audiosoc_device(mconfig, ACANSND, tag, owner, clock)
+	: supracan_um6619_cpu_device(mconfig, ACANSND, tag, owner, clock)
 	, device_sound_interface(mconfig, *this)
 	, m_stream(nullptr)
 	, m_timer(nullptr)
@@ -30,7 +30,7 @@ acan_sound_device::acan_sound_device(const machine_config &mconfig, const char *
 
 void acan_sound_device::device_start()
 {
-	supracan_um6619_audiosoc_device::device_start();
+	supracan_um6619_cpu_device::device_start();
 
 	m_stream = stream_alloc(0, 2, clock() / 16 / 5);
 	m_mix = std::make_unique<int32_t[]>((clock() / 16 / 5) * 2);
@@ -57,7 +57,7 @@ void acan_sound_device::device_start()
 
 void acan_sound_device::device_reset()
 {
-	supracan_um6619_audiosoc_device::device_reset();
+	supracan_um6619_cpu_device::device_reset();
 
 	m_active_channels = 0;
 	m_dma_channels = 0;
@@ -70,7 +70,7 @@ void acan_sound_device::device_reset()
 
 void acan_sound_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
 {
-	supracan_um6619_audiosoc_device::device_timer(timer, id, param, ptr);
+	supracan_um6619_cpu_device::device_timer(timer, id, param, ptr);
 
 	if (m_regs[0x14] & 0x40)
 	{
