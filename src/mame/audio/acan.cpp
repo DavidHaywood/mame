@@ -11,7 +11,7 @@
 #include "emu.h"
 #include "acan.h"
 
-#define VERBOSE		(1)
+#define VERBOSE		(0)
 #include "logmacro.h"
 
 // device type definition
@@ -64,8 +64,8 @@ void acan_sound_device::device_reset()
 	std::fill(std::begin(m_regs), std::end(m_regs), 0);
 
 	m_timer->reset();
-	sound_timer_irq(0);
-	sound_dma_irq(0);
+	set_sound_irq(7, 0); // Timer IRQ
+	set_sound_irq(6, 0); // DMA IRQ
 }
 
 void acan_sound_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
@@ -74,7 +74,7 @@ void acan_sound_device::device_timer(emu_timer &timer, device_timer_id id, int p
 
 	if (m_regs[0x14] & 0x40)
 	{
-		sound_timer_irq(1);
+		set_sound_irq(7, 1); // timer irq
 
 		// Update frequency
 		uint16_t period = (m_regs[0x12] << 8) + m_regs[0x11];
@@ -95,7 +95,7 @@ void acan_sound_device::sound_stream_update(sound_stream &stream, std::vector<re
 
 			for (int s = 0; s < outputs[0].samples(); s++)
 			{
-				uint8_t data = sound_ram_read(channel.curr_addr) + 0x80;
+				uint8_t data = m_soundram[channel.curr_addr] + 0x80;
 				int16_t sample = (int16_t)(data << 8);
 
 				channel.frac += channel.addr_increment;
@@ -109,7 +109,7 @@ void acan_sound_device::sound_stream_update(sound_stream &stream, std::vector<re
 				{
 					if (channel.register9)
 					{
-						sound_dma_irq(1);
+						set_sound_irq(6, 1); // dma IRQ
 						keyon_voice(i);
 					}
 					else if (channel.one_shot)
@@ -135,15 +135,17 @@ void acan_sound_device::sound_stream_update(sound_stream &stream, std::vector<re
 
 uint8_t acan_sound_device::sound_read(offs_t offset)
 {
+	m_stream->update();
+
 	if (offset == 0x14)
 	{
 		// acknowledge timer IRQ?
-		sound_timer_irq(0);
+		set_sound_irq(7, 0);
 	}
 	else if (offset == 0x16)
 	{
 		// acknowledge DMA IRQ?
-		sound_dma_irq(0);
+		set_sound_irq(6, 0);
 	}
 	return m_regs[offset];
 }
@@ -161,6 +163,8 @@ void acan_sound_device::keyon_voice(uint8_t voice)
 
 void acan_sound_device::sound_write(offs_t offset, uint8_t data)
 {
+	m_stream->update();
+
 	const uint8_t upper = (offset >> 4) & 0x0f;
 	const uint8_t lower = offset & 0x0f;
 
