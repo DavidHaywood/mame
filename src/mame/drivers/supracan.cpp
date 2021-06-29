@@ -208,7 +208,7 @@ void supracan_state::supracan(machine_config &config)
 	SPEAKER(config, "lspeaker").front_left();
 	SPEAKER(config, "rspeaker").front_right();
 
-	//config.set_perfect_quantum(m_acansound);
+	config.set_perfect_quantum(m_acansound);
 
 	generic_cartslot_device &cartslot(GENERIC_CARTSLOT(config, "cartslot", generic_plain_slot, "supracan_cart"));
 	cartslot.set_width(GENERIC_ROM16_WIDTH);
